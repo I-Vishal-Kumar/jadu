@@ -6,6 +6,7 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
+    "dev:all": "concurrently -n ui,agents,rag -c blue,green,yellow \"pnpm dev:ui\" \"pnpm dev:agents\" \"pnpm dev:rag\"",
     "dev:ui": "turbo dev --filter=@audio-insight/ui",
     "dev:agents": "cd services/agents && python -m uvicorn src.api.main:app --reload --port 8001",
     "dev:rag": "cd services/rag && python -m uvicorn src.api.main:app --reload --port 8002",
@@ -23,6 +24,7 @@
     "db:seed": "cd packages/database && python -m src.seed"
   },
   "devDependencies": {
+    "concurrently": "^9.1.0",
     "turbo": "^2.0.0",
     "prettier": "^3.2.0",
     "typescript": "^5.3.0"
