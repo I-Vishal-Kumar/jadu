@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(venvScriptspip install -e \".[ui]\")",
+      "Bash(winget install:*)",
+      "Bash(where ffmpeg)",
+      "Bash(dir \"C:\\\\Program Files\\\\FFmpeg\\\\bin\\\\ffmpeg.exe\")",
+      "Bash(dir \"C:\\\\ffmpeg\\\\bin\\\\ffmpeg.exe\")",
+      "Bash(dir \"%LOCALAPPDATA%\\\\Microsoft\\\\WinGet\\\\Packages\\\\*ffmpeg*\" /s)",
+      "Bash(findstr:*)",
+      "Bash(powershell:*)",
+      "Bash(.venvScriptspip install imageio-ffmpeg)",
+      "Bash(c:\\\\Users\\\\JIPL\\\\Desktop\\\\audio-transcription\\\\venv\\\\Scripts\\\\pip.exe install:*)",
+      "Bash(./venv/Scripts/pip.exe install:*)",
+      "Bash(./venv/Scripts/python.exe:*)"
+    ]
+  }
+}
