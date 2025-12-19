@@ -79,122 +79,324 @@ audio-transcription/
 └── pyproject.toml                # Python monorepo config
 ```
 
-## Quick Start
+---
 
-### Prerequisites
+## Prerequisites
 
-- Node.js 18+
-- Python 3.11+
-- Docker & Docker Compose
-- pnpm 8+
+Before running the application, ensure you have the following installed:
 
-### Installation
+| Tool | Version | Installation |
+|------|---------|--------------|
+| **Node.js** | 18+ | [nodejs.org](https://nodejs.org/) |
+| **Python** | 3.11+ | [python.org](https://python.org/) |
+| **pnpm** | 8+ | `npm install -g pnpm` |
+| **Docker** | Latest | [docker.com](https://docker.com/) |
+| **Docker Compose** | Latest | Included with Docker Desktop |
+| **FFmpeg** | Latest | Required for audio processing |
+
+### Installing FFmpeg
+
+**Windows (with winget):**
+```powershell
+winget install FFmpeg
+```
+
+**Windows (with Chocolatey):**
+```powershell
+choco install ffmpeg
+```
+
+**macOS:**
+```bash
+brew install ffmpeg
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt update && sudo apt install ffmpeg
+```
+
+---
+
+## Quick Start Guide
+
+### Step 1: Clone and Setup
 
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd audio-transcription
+
 # Install JavaScript dependencies
 pnpm install
 
-# Install Python dependencies
-uv sync  # or pip install -e .
-
-# Copy environment file
-cp infrastructure/docker/.env.example infrastructure/docker/.env
-# Edit .env with your API keys
+# Install Python dependencies (choose one)
+pip install -e ".[dev]"          # Using pip
+# OR
+uv sync                           # Using uv (faster)
 ```
 
-### Start Infrastructure
+### Step 2: Configure Environment Variables
 
 ```bash
-# Start PostgreSQL, Redis, Chroma
-docker-compose -f infrastructure/docker/docker-compose.yml up -d
+# Copy the example environment file
+copy infrastructure\docker\.env.example infrastructure\docker\.env
 ```
 
-### Run Development Servers
-
-```bash
-# Team 1: UI (http://localhost:3001)
-pnpm dev:ui
-
-# Team 2: RAG Service (http://localhost:8002)
-cd services/rag && uvicorn src.api.main:app --reload --port 8002
-
-# Team 3: Agent Service (http://localhost:8001)
-cd services/agents && uvicorn src.api.main:app --reload --port 8001
-
-# Team 4: RBAC Service (http://localhost:8003)
-cd services/rbac && pnpm dev
-```
-
-## Environment Variables
-
-Create `infrastructure/docker/.env`:
+Edit `infrastructure/docker/.env` with your API keys:
 
 ```env
-# Database
+# ===========================================
+# Database Configuration
+# ===========================================
 DB_PASSWORD=devpassword123
 
+# ===========================================
 # LLM Providers (at least one required)
+# ===========================================
 OPENAI_API_KEY=sk-your-openai-key
 ANTHROPIC_API_KEY=sk-ant-your-anthropic-key
 OPENROUTER_API_KEY=sk-or-your-openrouter-key
+
+# Default provider: openai, anthropic, or openrouter
 DEFAULT_LLM_PROVIDER=openrouter
 
-# Whisper Model
+# ===========================================
+# Whisper Configuration
+# ===========================================
+# Options: tiny, base, small, medium, large
 WHISPER_MODEL=base
 
-# Clerk Auth
+# ===========================================
+# Authentication (Clerk)
+# ===========================================
 CLERK_PUBLISHABLE_KEY=pk_test_your-clerk-key
 CLERK_SECRET_KEY=sk_test_your-clerk-secret
 
-# Optional: Integrations
+# ===========================================
+# Optional: Integration Tokens
+# ===========================================
 GITHUB_TOKEN=ghp_your-github-token
 SLACK_BOT_TOKEN=xoxb-your-slack-token
+AZURE_TENANT_ID=your-azure-tenant-id
+AZURE_CLIENT_ID=your-azure-client-id
+AZURE_CLIENT_SECRET=your-azure-client-secret
 ```
 
-## Agent Framework
+### Step 3: Start Infrastructure Services
 
-Agents are built with Identity Cards and DNA Blueprint:
+Start the required infrastructure (PostgreSQL, Redis, Chroma):
 
-```python
-from agent_framework import BaseAgent, Skill, TrustLevel
+```bash
+# Start infrastructure only (recommended for development)
+docker-compose -f infrastructure/docker/docker-compose.yml up -d postgres redis chroma
 
-class MyAgent(BaseAgent):
-    def __init__(self):
-        super().__init__(
-            name="my-agent",
-            agent_type="custom",
-            version="1.0.0",
-            skills=[Skill(name="processing", confidence_score=0.95)],
-            trust_level=TrustLevel.VERIFIED,
-        )
-
-    async def execute(self, input_data, context):
-        # Agent logic here
-        return AgentResult(success=True, data={...})
+# Verify services are running
+docker-compose -f infrastructure/docker/docker-compose.yml ps
 ```
 
-## API Endpoints
+Expected output:
+```
+NAME                        STATUS
+audio-insight-postgres      running (healthy)
+audio-insight-redis         running (healthy)
+audio-insight-chroma        running (healthy)
+```
 
-### Agent Service (port 8001)
-- `POST /api/upload` - Upload audio file
-- `POST /api/agents/process` - Process audio with agents
-- `POST /api/agents/analyze-text` - Analyze text directly
-- `GET /api/agents/registry` - List registered agents
+### Step 4: Run the Application
 
-### RAG Service (port 8002)
-- `POST /api/rag/index` - Index document
-- `POST /api/rag/query` - Query knowledge base
-- `POST /api/rag/search` - Semantic search
+You have two options to run the application:
 
-### RBAC Service (port 8003)
-- `POST /api/auth/verify` - Verify token
-- `POST /api/auth/authorize` - Check authorization
-- `GET /api/users/me` - Get current user
-- `GET /api/roles` - List roles
+#### Option A: Run Services Individually (Recommended for Development)
 
-## Development
+Open separate terminal windows for each service:
 
-### Git Branching
+**Terminal 1 - Agent Service (Port 8001):**
+```bash
+cd services/agents
+pip install -r requirements.txt
+uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8001
+```
+
+**Terminal 2 - RAG Service (Port 8002):**
+```bash
+cd services/rag
+pip install -r requirements.txt
+uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8002
+```
+
+**Terminal 3 - RBAC Service (Port 8003):**
+```bash
+cd services/rbac
+pnpm install
+pnpm dev
+```
+
+**Terminal 4 - UI (Port 3001):**
+```bash
+cd apps/ui
+pnpm install
+pnpm dev
+```
+
+#### Option B: Run All Services with Docker Compose
+
+```bash
+# Start everything including application services
+docker-compose -f infrastructure/docker/docker-compose.yml --profile full up -d
+
+# View logs
+docker-compose -f infrastructure/docker/docker-compose.yml logs -f
+```
+
+### Step 5: Access the Application
+
+Once all services are running, open your browser:
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| **UI** | http://localhost:3001 | Main web interface |
+| **Agent Service** | http://localhost:8001/docs | Agent API (Swagger UI) |
+| **RAG Service** | http://localhost:8002/docs | RAG API (Swagger UI) |
+| **RBAC Service** | http://localhost:8003/api/health | RBAC health check |
+| **Chroma** | http://localhost:8000 | Vector database |
+| **Adminer** | http://localhost:8080 | Database admin (with tools profile) |
+
+---
+
+## Running Individual Components
+
+### Agent Service Only
+
+```bash
+cd services/agents
+
+# Create virtual environment (optional but recommended)
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # Linux/macOS
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set environment variables
+set OPENROUTER_API_KEY=your-key  # Windows
+export OPENROUTER_API_KEY=your-key  # Linux/macOS
+
+# Run the service
+uvicorn src.api.main:app --reload --port 8001
+```
+
+### RAG Service Only
+
+```bash
+cd services/rag
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Ensure Chroma is running
+docker-compose -f ../../infrastructure/docker/docker-compose.yml up -d chroma
+
+# Run the service
+uvicorn src.api.main:app --reload --port 8002
+```
+
+### RBAC Service Only
+
+```bash
+cd services/rbac
+
+# Install dependencies
+pnpm install
+
+# Set environment variables
+set CLERK_SECRET_KEY=your-key
+set DATABASE_URL=postgresql://admin:devpassword123@localhost:5432/audio_insight
+
+# Run the service
+pnpm dev
+```
+
+### UI Only
+
+```bash
+cd apps/ui
+
+# Install dependencies
+pnpm install
+
+# Run development server
+pnpm dev
+```
+
+---
+
+## Using the Application
+
+### 1. Upload and Process Audio
+
+**Via UI:**
+1. Open http://localhost:3001
+2. Drag & drop an audio file or click to select
+3. Choose processing options (transcribe, translate, summarize, etc.)
+4. Click "Process" and wait for results
+
+**Via API:**
+```bash
+# Upload audio file
+curl -X POST http://localhost:8001/api/upload \
+  -F "file=@your-audio.mp3"
+
+# Process with all tasks
+curl -X POST http://localhost:8001/api/agents/process \
+  -H "Content-Type: application/json" \
+  -d '{
+    "audio_file_id": "returned-file-id",
+    "tasks": ["transcribe", "summarize", "detect_intent", "extract_keywords"],
+    "options": {
+      "target_languages": ["es", "fr"]
+    }
+  }'
+```
+
+### 2. Analyze Text Directly
+
+```bash
+curl -X POST http://localhost:8001/api/agents/analyze-text \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Your text to analyze here...",
+    "tasks": ["summarize", "detect_intent", "extract_keywords"]
+  }'
+```
+
+### 3. Query the Knowledge Base (RAG)
+
+```bash
+# Index a document
+curl -X POST http://localhost:8002/api/rag/index \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transcript_id": "transcript-123",
+    "text": "Document content...",
+    "metadata": {"source": "audio-file.mp3"}
+  }'
+
+# Query the knowledge base
+curl -X POST http://localhost:8002/api/rag/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "What was discussed about the project timeline?",
+    "top_k": 5
+  }'
+```
+
+---
+
+## Development Workflow
+
+### Git Branching Strategy
 
 ```
 main (protected)
@@ -206,33 +408,166 @@ main (protected)
         └── feature/team5/*  (MCP)
 ```
 
-### Testing
+### Running Tests
 
 ```bash
 # JavaScript tests
 pnpm test
 
 # Python tests
-pytest services/agents/tests
-pytest services/rag/tests
+pytest services/agents/tests -v
+pytest services/rag/tests -v
+
+# Test with coverage
+pytest --cov=services/agents/src services/agents/tests
 ```
 
 ### Code Formatting
 
 ```bash
-# JavaScript
+# JavaScript/TypeScript
 pnpm lint
+pnpm lint:fix
 
 # Python
-black services/
-ruff check services/ --fix
+black services/ packages/
+ruff check services/ packages/ --fix
 ```
+
+---
+
+## API Reference
+
+### Agent Service (Port 8001)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | Health check |
+| `/api/upload` | POST | Upload audio file |
+| `/api/agents/process` | POST | Process audio with agents |
+| `/api/agents/analyze-text` | POST | Analyze text directly |
+| `/api/agents/registry` | GET | List registered agents |
+| `/api/agents/{id}/identity` | GET | Get agent identity card |
+
+### RAG Service (Port 8002)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | Health check |
+| `/api/rag/index` | POST | Index document |
+| `/api/rag/query` | POST | Query with RAG |
+| `/api/rag/search` | POST | Semantic search |
+
+### RBAC Service (Port 8003)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | Health check |
+| `/api/auth/verify` | POST | Verify token |
+| `/api/auth/authorize` | POST | Check authorization |
+| `/api/users/me` | GET | Get current user |
+| `/api/users` | GET | List users |
+| `/api/roles` | GET | List roles |
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**1. FFmpeg not found**
+```
+Error: FFmpeg not found. Please install FFmpeg.
+```
+Solution: Install FFmpeg and ensure it's in your PATH. Run `ffmpeg -version` to verify.
+
+**2. Database connection failed**
+```
+Error: Connection to PostgreSQL failed
+```
+Solution: Ensure Docker is running and the postgres container is healthy:
+```bash
+docker-compose -f infrastructure/docker/docker-compose.yml up -d postgres
+docker-compose -f infrastructure/docker/docker-compose.yml ps
+```
+
+**3. Chroma connection failed**
+```
+Error: Could not connect to Chroma at localhost:8000
+```
+Solution: Start the Chroma container:
+```bash
+docker-compose -f infrastructure/docker/docker-compose.yml up -d chroma
+```
+
+**4. API key errors**
+```
+Error: Invalid API key
+```
+Solution: Verify your API keys in `.env` file and ensure they're exported:
+```bash
+# Windows
+set OPENROUTER_API_KEY=your-key
+
+# Linux/macOS
+export OPENROUTER_API_KEY=your-key
+```
+
+**5. Port already in use**
+```
+Error: Port 8001 is already in use
+```
+Solution: Kill the process using the port or use a different port:
+```bash
+# Windows
+netstat -ano | findstr :8001
+taskkill /PID <PID> /F
+
+# Linux/macOS
+lsof -i :8001
+kill -9 <PID>
+```
+
+### Viewing Logs
+
+```bash
+# Docker container logs
+docker-compose -f infrastructure/docker/docker-compose.yml logs -f
+
+# Specific service logs
+docker-compose -f infrastructure/docker/docker-compose.yml logs -f postgres
+docker-compose -f infrastructure/docker/docker-compose.yml logs -f chroma
+```
+
+### Resetting the Environment
+
+```bash
+# Stop all containers
+docker-compose -f infrastructure/docker/docker-compose.yml down
+
+# Remove volumes (WARNING: deletes all data)
+docker-compose -f infrastructure/docker/docker-compose.yml down -v
+
+# Start fresh
+docker-compose -f infrastructure/docker/docker-compose.yml up -d postgres redis chroma
+```
+
+---
 
 ## Documentation
 
 - [Architecture Guide](docs/architecture/README.md)
 - [API Contracts](contracts/openapi/)
 - [Agent Framework](packages/agent-framework/)
+
+## Contributing
+
+1. Create a feature branch from `develop`
+2. Make changes following team guidelines
+3. Write/update tests
+4. Submit PR with description
+5. Address review comments
+6. Merge after approval
 
 ## License
 
