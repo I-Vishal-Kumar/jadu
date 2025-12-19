@@ -80,3 +80,4 @@ dmypy.json
 
 # Logs
 *.log
+node_modules
