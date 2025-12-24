@@ -333,6 +333,7 @@ async def query_knowledge_base(request: QueryRequest):
             "query": response.query,
             "processing_time_ms": response.processing_time_ms,
             "confidence": response.confidence,
+            "retrieval_stats": response.retrieval_stats,
         }
 
     except Exception as e:

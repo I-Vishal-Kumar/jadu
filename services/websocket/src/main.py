@@ -18,7 +18,6 @@ from .handlers.chat_handler import handle_chat_message
 from .utils.permissions import get_user_role
 from .models.db import SessionLocal
 from .models.messages import ChatResponse, SystemMessage, ErrorMessage
-from .routes import transcription, meetings, conversations, notifications
 
 # Configure logging
 logging.basicConfig(
@@ -144,12 +143,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(transcription.router)
-app.include_router(transcription.router)
-app.include_router(meetings.router)
-app.include_router(conversations.router)
-app.include_router(notifications.router)
+# Note: Additional routers (transcription, meetings, conversations, notifications)
+# can be added here when the route modules are implemented
 
 
 @app.get("/api/health")
