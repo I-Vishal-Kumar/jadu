@@ -49,16 +49,17 @@ export function WebSocketProvider({
   // Get WebSocket URL from environment or use default
   const getWebSocketUrl = useCallback((sessionId: string | null) => {
     if (!sessionId) return null;
-
-    const wsPort = 8004; // From ports.json - websocket service port
-    const wsHost = process.env.NEXT_PUBLIC_WS_HOST || "localhost";
-    const protocol = process.env.NODE_ENV === "production" ? "wss" : "ws";
-
-    let url = `${protocol}://${wsHost}:${wsPort}/ws/chat/${sessionId}`;
+  
+    const baseUrl =
+      process.env.NEXT_PUBLIC_WEBSOCKET_URL ?? "ws://localhost:8400";
+  
+    const url = new URL(`/ws/chat/${sessionId}`, baseUrl);
+  
     if (userId) {
-      url += `?user_id=${userId}`;
+      url.searchParams.set("user_id", userId);
     }
-    return url;
+  
+    return url.toString();
   }, [userId]);
 
   const wsUrl = sessionId ? getWebSocketUrl(sessionId) : null;

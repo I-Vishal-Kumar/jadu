@@ -4,17 +4,25 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+from dotenv import load_dotenv
 
+load_dotenv()
+
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5433")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "intellibooks")
+POSTGRES_USER = os.getenv("POSTGRES_USER", "admin")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "admin")
 
 @dataclass
 class DatabaseConfig:
     """PostgreSQL database configuration."""
 
-    host: str = "localhost"
-    port: int = 5433  # Using 5433 to avoid conflict with local PostgreSQL
-    database: str = "intellibooks"
-    user: str = "admin"
-    password: str = "devpassword123"
+    host: str = POSTGRES_HOST
+    port: int = POSTGRES_PORT  # Using 5433 to avoid conflict with local PostgreSQL
+    database: str = POSTGRES_DB
+    user: str = POSTGRES_USER
+    password: str = POSTGRES_PASSWORD
     min_pool_size: int = 2
     max_pool_size: int = 10
 

@@ -132,13 +132,7 @@ def get_rag_engine():
                 logger.warning(f"Could not check collection count: {e}")
             
             # Initialize retriever with lower threshold to get more results
-<<<<<<< Updated upstream
             # ChromaDB returns similarity scores typically in 0.05-0.3 range for good matches
-=======
-            # Lower threshold allows more chunks to pass through for better coverage
-            # Note: SemanticRetriever expects ChromaVectorStore interface, but ChromaDBStore
-            # implements the same search() method, so it's compatible
->>>>>>> Stashed changes
             retriever = SemanticRetriever(
                 vector_store=vector_store,  # ChromaDBStore is compatible with ChromaVectorStore interface
                 default_top_k=5,
