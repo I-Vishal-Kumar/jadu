@@ -28,6 +28,13 @@ async def _try_connect(config: DatabaseConfig, host: str) -> Optional[Pool]:
         return None
 
     try:
+        logger.info(f"Connecting to PostgreSQL at {host}:{config.port}")
+        logger.info(f"Database: {config.database}")
+        logger.info(f"User: {config.user}")
+        logger.info(f"Password: {config.password}")
+        logger.info(f"Min pool size: {config.min_pool_size}")
+        logger.info(f"Max pool size: {config.max_pool_size}")
+        logger.info(f"Command timeout: 60")
         pool = await asyncpg.create_pool(
             host=host,
             port=config.port,
