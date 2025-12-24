@@ -32,6 +32,7 @@ import {
     generateSessionId,
     Session as APISession,
 } from "@/lib/api/sessions";
+import ShareModal from "@/components/dashboard_v2/ShareModal";
 import dummyData from "../../../dummy_data/dummy_data.json";
 
 // RAG API Configuration
@@ -728,7 +729,7 @@ export default function DashboardV2() {
                 {/* Chat Section */}
                 <div className="flex-1 flex flex-col min-w-0">
                     <div className="flex-1 bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-                        <WebSocketProvider userId={user?.id} sessionId={currentSessionId}>
+                        <WebSocketProvider sessionId={currentSessionId} userId={user?.id}>
                             <ChatPanel
                                 hasSources={hasSources}
                                 onUploadClick={() => setShowUploadModal(true)}
@@ -738,7 +739,6 @@ export default function DashboardV2() {
                                 onShareClick={handleShareClick}
                                 isQuerying={isQuerying}
                                 stats={stats}
-                                readOnly={userRole === "viewer"}
                                 useWebSocket={true}
                             />
                         </WebSocketProvider>
