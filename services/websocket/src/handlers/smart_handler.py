@@ -230,7 +230,7 @@ async def process_with_chat_agent(message: ChatMessage) -> ChatResponse:
         )
 
 
-async def process_with_research_agent(message: ChatMessage) -> ChatResponse:
+async def process_with_research_agent(message: ChatMessage, user_id: str) -> ChatResponse:
     """Process message with research agent (RAG enabled)."""
     if not RESEARCH_AGENT_AVAILABLE or ResearchAgent is None:
         return ChatResponse(
@@ -243,7 +243,7 @@ async def process_with_research_agent(message: ChatMessage) -> ChatResponse:
             metadata={"intent": "knowledge_query", "rag_used": False},
         )
 
-    research_agent = ResearchAgent()
+    research_agent = ResearchAgent(user_id=user_id)
     agent_result = await research_agent.safe_execute({
         "query": message.content,
         "question": message.content,
@@ -281,6 +281,7 @@ async def process_with_research_agent(message: ChatMessage) -> ChatResponse:
 
 async def process_smart_message(
     message: ChatMessage,
+    user_id: str,
     websocket=None,
 ) -> ChatResponse:
     """
@@ -305,10 +306,10 @@ async def process_smart_message(
         if intent == MessageIntent.GENERAL_CHAT:
             response = await process_with_chat_agent(message)
         elif intent == MessageIntent.KNOWLEDGE_QUERY:
-            response = await process_with_research_agent(message)
+            response = await process_with_research_agent(message, user_id)
         else:  # HYBRID
             # Try research first, if no good results fall back to chat
-            response = await process_with_research_agent(message)
+            response = await process_with_research_agent(message, user_id)
 
             # If no sources found or low confidence, enhance with chat
             sources = response.metadata.get("sources", []) if response.metadata else []
@@ -393,6 +394,7 @@ async def handle_smart_message(
     websocket,
     message_data: dict,
     session_id: str,
+    user_id: str = "test-user",
 ) -> Optional[ChatResponse]:
     """Handle an incoming message with smart routing."""
     start_time = time.time()
@@ -415,7 +417,7 @@ async def handle_smart_message(
         )
 
         # Process with smart handler
-        response = await process_smart_message(chat_message, websocket)
+        response = await process_smart_message(chat_message, user_id, websocket)
 
         # Calculate processing time
         processing_time_ms = (time.time() - start_time) * 1000

@@ -5,6 +5,7 @@ from pathlib import Path
 from pydantic_settings import BaseSettings
 from pydantic import ConfigDict
 from functools import lru_cache
+import os
 
 
 def get_ports_config():
@@ -59,8 +60,21 @@ class Settings(BaseSettings):
     # Clerk
     clerk_secret_key: str = ""
 
+    # OAuth
+    zoho_client_id: str = ""
+    zoho_client_secret: str = ""
+    zoho_redirect_uri: str = "http://localhost:8004/api/oauth/zoho/callback"
+    
+    zoom_client_id: str = ""
+    zoom_client_secret: str = ""
+    zoom_redirect_uri: str = "http://localhost:8004/api/oauth/zoom/callback"
+    
+    github_client_id: str = ""
+    github_client_secret: str = ""
+    github_redirect_uri: str = "http://localhost:8004/api/oauth/github/callback"
+
     model_config = ConfigDict(
-        env_file=".env",
+        env_file=str(Path(__file__).parent.parent.parent.parent / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",  # Ignore extra fields from .env that aren't defined in this model
     )

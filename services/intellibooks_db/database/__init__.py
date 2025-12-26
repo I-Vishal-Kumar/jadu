@@ -5,7 +5,7 @@ Provides connection pooling with Docker/local fallback pattern (like ChromaDB).
 
 from .config import DatabaseConfig, get_db_config
 from .connection import get_db_pool, close_db_pool, ensure_schema, health_check
-from .repositories import SessionRepository, DocumentRepository, MessageRepository
+from .repositories import SessionRepository, DocumentRepository, MessageRepository, CredentialRepository
 
 __all__ = [
     "DatabaseConfig",
@@ -17,4 +17,5 @@ __all__ = [
     "SessionRepository",
     "DocumentRepository",
     "MessageRepository",
+    "CredentialRepository",
 ]

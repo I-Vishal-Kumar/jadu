@@ -31,6 +31,7 @@ import {
     generateSessionId,
     Session as APISession,
 } from "@/lib/api/sessions";
+import CreateAgentView from "@/components/dashboard_v2/CreateAgentView";
 import ShareModal from "@/components/dashboard_v2/ShareModal";
 import dummyData from "../../../dummy_data/dummy_data.json";
 
@@ -65,6 +66,13 @@ interface UploadProgress {
     status: "uploading" | "processing" | "done" | "error";
     error?: string;
     chunks?: number;
+}
+
+interface Agent {
+    name: string;
+    provider: string;
+    model: string;
+    instructions: string;
 }
 
 interface RAGStats {
@@ -174,6 +182,8 @@ export default function DashboardV2() {
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [sessions, setSessions] = useState<APISession[]>([]);
     const [persistenceEnabled, setPersistenceEnabled] = useState(false);
+    const [activeTab, setActiveTab] = useState<'sources' | 'create_agent' | 'connections'>('sources');
+    const [createdAgents, setCreatedAgents] = useState<Agent[]>([]);
 
     // RAG State
     const [documents, setDocuments] = useState<Document[]>([]);
@@ -191,6 +201,17 @@ export default function DashboardV2() {
             router.push("/sign-in");
         }
     }, [isLoaded, isSignedIn, router]);
+
+    // Handle OAuth success - close popup if window was opened by window.open
+    useEffect(() => {
+        const authSuccess = searchParams.get("auth_success");
+        if (authSuccess && window.opener) {
+            // Wait a moment to show success state if needed, then close
+            setTimeout(() => {
+                window.close();
+            }, 1000);
+        }
+    }, [searchParams]);
 
     // Fetch sessions and initialize current session on mount
     useEffect(() => {
@@ -704,46 +725,65 @@ export default function DashboardV2() {
             />
 
             <main className="flex-1 flex overflow-hidden p-4 gap-4">
-                {/* Sidebar Section */}
-                <div
-                    style={{ width: isSidebarCollapsed ? "48px" : `${sidebarWidth}px` }}
-                    className="flex-shrink-0 flex items-stretch transition-all duration-75"
-                >
-                    <div className="flex-1 flex overflow-hidden">
-                        <Sidebar
-                            isCollapsed={isSidebarCollapsed}
-                            onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                            sources={sourcesForSidebar}
-                            isUploading={isUploading}
-                            onAddSource={() => setShowUploadModal(true)}
-                            uploadProgress={uploadProgress}
-                            onDeleteSource={handleDeleteDocument}
-                            onClearAll={handleClearAll}
-                            onClearKnowledgeBase={handleClearKnowledgeBase}
-                            stats={stats}
+                {/* Main Content Section */}
+                {(activeTab === 'sources' || activeTab === 'connections') ? (
+                    <>
+                        {/* Sidebar Section */}
+                        <div
+                            style={{ width: isSidebarCollapsed ? "48px" : `${sidebarWidth}px` }}
+                            className="flex-shrink-0 flex items-stretch transition-all duration-75"
+                        >
+                            <div className="flex-1 flex overflow-hidden">
+                                <Sidebar
+                                    isCollapsed={isSidebarCollapsed}
+                                    onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                                    sources={sourcesForSidebar}
+                                    isUploading={isUploading}
+                                    onAddSource={() => setShowUploadModal(true)}
+                                    uploadProgress={uploadProgress}
+                                    onDeleteSource={handleDeleteDocument}
+                                    onClearAll={handleClearAll}
+                                    onClearKnowledgeBase={handleClearKnowledgeBase}
+                                    stats={stats}
+                                    activeTab={activeTab}
+                                    onTabChange={setActiveTab}
+                                />
+                            </div>
+                            {!isSidebarCollapsed && <ResizeHandle onMouseDown={startResizingSidebar} className="ml-1" />}
+                        </div>
+
+                        {/* Chat Section */}
+                        <div className="flex-1 flex flex-col min-w-0">
+                            <div className="flex-1 bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                                <WebSocketProvider userId={user?.id} sessionId={currentSessionId}>
+                                    <ChatPanel
+                                        hasSources={hasSources}
+                                        onUploadClick={() => setShowUploadModal(true)}
+                                        isUploading={isUploading}
+                                        messages={messages}
+                                        onSendMessage={handleQuery}
+                                        onShareClick={handleShareClick}
+                                        isQuerying={isQuerying}
+                                        stats={stats}
+                                        useWebSocket={true}
+                                    />
+                                </WebSocketProvider>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex-1 flex min-w-0">
+                        <CreateAgentView
+                            onBackToSources={() => setActiveTab('sources')}
+                            onTabChange={setActiveTab}
+                            activeTab={activeTab}
+                            onAgentInit={(agentData: Agent) => {
+                                setCreatedAgents(prev => [agentData, ...prev]);
+                                setActiveTab('sources');
+                            }}
                         />
                     </div>
-                    {!isSidebarCollapsed && <ResizeHandle onMouseDown={startResizingSidebar} className="ml-1" />}
-                </div>
-
-                {/* Chat Section */}
-                <div className="flex-1 flex flex-col min-w-0">
-                    <div className="flex-1 bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-                        <WebSocketProvider userId={user?.id} sessionId={currentSessionId}>
-                            <ChatPanel
-                                hasSources={hasSources}
-                                onUploadClick={() => setShowUploadModal(true)}
-                                isUploading={isUploading}
-                                messages={messages}
-                                onSendMessage={handleQuery}
-                                onShareClick={handleShareClick}
-                                isQuerying={isQuerying}
-                                stats={stats}
-                                useWebSocket={true}
-                            />
-                        </WebSocketProvider>
-                    </div>
-                </div>
+                )}
 
                 {/* Studio Section */}
                 <div
@@ -755,6 +795,8 @@ export default function DashboardV2() {
                         <StudioPanel
                             isCollapsed={isStudioCollapsed}
                             onToggle={() => setIsStudioCollapsed(!isStudioCollapsed)}
+                            createdAgents={createdAgents}
+                            onAgentClick={() => setActiveTab('sources')}
                             onNoteClick={(viewName: string) => {
                                 if (viewName === 'Architecture') setShowArchitecture(true);
                                 if (viewName === 'Flashcards') setShowFlashcards(true);

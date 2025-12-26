@@ -33,6 +33,8 @@ interface StudioPanelProps {
     hasSources: boolean;
     data: any;
     onMindMapNodeClick?: (nodeLabel: string, nodeData: any) => void;
+    createdAgents?: any[];
+    onAgentClick?: (agent: any) => void;
 }
 
 const IconMapper = ({ name, size = 18, className = "" }: { name: string; size?: number; className?: string }) => {
@@ -41,7 +43,18 @@ const IconMapper = ({ name, size = 18, className = "" }: { name: string; size?: 
     return <IconComponent size={size} className={className} />;
 };
 
-const StudioPanel: FC<StudioPanelProps> = ({ isCollapsed, onToggle, onNoteClick, onItemClick, pendingGenerationLabel, hasSources, data: initialData, onMindMapNodeClick }) => {
+const StudioPanel: FC<StudioPanelProps> = ({
+    isCollapsed,
+    onToggle,
+    onNoteClick,
+    onItemClick,
+    pendingGenerationLabel,
+    hasSources,
+    data: initialData,
+    onMindMapNodeClick,
+    createdAgents = [],
+    onAgentClick
+}) => {
     const [currentView, setCurrentView] = useState<'grid' | 'flashcards' | 'architecture' | 'report' | 'quiz'>('grid');
     const [generatingItems, setGeneratingItems] = useState<string[]>([]);
     const [notes, setNotes] = useState(initialData.notes);
@@ -200,6 +213,15 @@ const StudioPanel: FC<StudioPanelProps> = ({ isCollapsed, onToggle, onNoteClick,
                         <>
                             {generatingItems.map((itemLabel) => (
                                 <GeneratingItem key={itemLabel} label={itemLabel} />
+                            ))}
+                            {createdAgents.map((agent, i) => (
+                                <NoteItem
+                                    key={`agent-${i}`}
+                                    icon={<div className="p-1.5 bg-purple-100 rounded-lg text-purple-600"><Icons.Cpu size={14} /></div>}
+                                    title={agent.name}
+                                    subtitle={`AGENT · ${agent.provider?.toUpperCase() || 'CUSTOM'}`}
+                                    onClick={() => onAgentClick?.(agent)}
+                                />
                             ))}
                             {notes.map((note: any) => (
                                 <NoteItem

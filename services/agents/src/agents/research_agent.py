@@ -70,6 +70,7 @@ except ImportError:
 from ..llm_factory import create_llm_settings
 from ..middleware import ComplianceMiddleware, GuardrailsMiddleware
 from ..memory import MemoryManager
+from ..utils.mcp_client import mcp_client
 
 logger = logging.getLogger(__name__)
 
@@ -273,10 +274,227 @@ def query_knowledge_base(
     return "\n".join(response_parts)
 
 
+# --- Token Helper ---
+
+def get_service_token(user_id: str, service: str) -> Optional[str]:
+    """Retrieve OAuth token for a user and service."""
+    try:
+        import asyncio
+        import concurrent.futures
+        from intellibooks_db.database import get_db_pool, CredentialRepository
+
+        def _fetch():
+            new_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(new_loop)
+            try:
+                pool = new_loop.run_until_complete(get_db_pool())
+                if pool:
+                    repo = CredentialRepository(pool)
+                    cred = new_loop.run_until_complete(repo.get(user_id, service))
+                    return cred.get("access_token") if cred else None
+                return None
+            finally:
+                new_loop.close()
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            return executor.submit(_fetch).result(timeout=10)
+    except Exception as e:
+        logger.error(f"Error fetching token for {user_id}/{service}: {e}")
+        return None
+
+# --- Zoho Mail Tools ---
+
+def zoho_mail_list_emails(user_id: str, account_id: str = "primary", limit: int = 5) -> str:
+    """List recent emails from Zoho Mail."""
+    token = get_service_token(user_id, "zoho")
+    if not token:
+        return "Error: Zoho account not connected. Please connect Zoho in the sidebar."
+        
+    result = mcp_client.call_tool(
+        server="zoho-mail",
+        tool="list_emails",
+        arguments={"accountId": account_id, "limit": limit},
+        env={"ZOHO_ACCESS_TOKEN": token}
+    )
+    if result["success"]:
+        return f"Recent emails:\n{result['data']}"
+    return f"Error: {result['error']}"
+
+def zoho_mail_send_email(user_id: str, account_id: str, to: str, subject: str, body: str) -> str:
+    """Send an email via Zoho Mail."""
+    token = get_service_token(user_id, "zoho")
+    if not token:
+        return "Error: Zoho account not connected."
+
+    result = mcp_client.call_tool(
+        server="zoho-mail",
+        tool="send_email",
+        arguments={"accountId": account_id, "to": to, "subject": subject, "body": body},
+        env={"ZOHO_ACCESS_TOKEN": token}
+    )
+    if result["success"]:
+        return "Email sent successfully!"
+    return f"Error: {result['error']}"
+
+def zoho_mail_reply_to_email(user_id: str, account_id: str, message_id: str, body: str) -> str:
+    """Reply to an email in Zoho Mail."""
+    token = get_service_token(user_id, "zoho")
+    if not token:
+        return "Error: Zoho account not connected."
+
+    result = mcp_client.call_tool(
+        server="zoho-mail",
+        tool="reply_to_email",
+        arguments={"accountId": account_id, "messageId": message_id, "body": body},
+        env={"ZOHO_ACCESS_TOKEN": token}
+    )
+    if result["success"]:
+        return "Reply sent successfully!"
+    return f"Error: {result['error']}"
+
+# --- Zoho Cliq Tools ---
+
+def zoho_cliq_list_channels(user_id: str) -> str:
+    """List Zoho Cliq channels."""
+    token = get_service_token(user_id, "zoho")
+    if not token:
+        return "Error: Zoho account not connected."
+
+    result = mcp_client.call_tool(
+        server="zoho-cliq",
+        tool="list_channels",
+        arguments={},
+        env={"ZOHO_ACCESS_TOKEN": token}
+    )
+    if result["success"]:
+        return f"Channels:\n{result['data']}"
+    return f"Error: {result['error']}"
+
+def zoho_cliq_get_messages(user_id: str, channel_id: str, limit: int = 3) -> str:
+    """Get recent messages from a Zoho Cliq channel."""
+    token = get_service_token(user_id, "zoho")
+    if not token:
+        return "Error: Zoho account not connected."
+
+    result = mcp_client.call_tool(
+        server="zoho-cliq",
+        tool="get_messages",
+        arguments={"channelId": channel_id, "limit": limit},
+        env={"ZOHO_ACCESS_TOKEN": token}
+    )
+    if result["success"]:
+        return f"Recent messages:\n{result['data']}"
+    return f"Error: {result['error']}"
+
+def zoho_cliq_send_message(user_id: str, channel_id: str, text: str) -> str:
+    """Send a message to a Zoho Cliq channel."""
+    token = get_service_token(user_id, "zoho")
+    if not token:
+        return "Error: Zoho account not connected."
+
+    result = mcp_client.call_tool(
+        server="zoho-cliq",
+        tool="send_message",
+        arguments={"channelId": channel_id, "text": text},
+        env={"ZOHO_ACCESS_TOKEN": token}
+    )
+    if result["success"]:
+        return "Message sent successfully!"
+    return f"Error: {result['error']}"
+
+# --- Zoom Tools ---
+
+def zoom_create_meeting(user_id: str, topic: str, start_time: str = None, duration: int = 60) -> str:
+    """Create a Zoom meeting."""
+    token = get_service_token(user_id, "zoom")
+    if not token:
+        return "Error: Zoom account not connected."
+
+    args = {"topic": topic, "duration": duration}
+    if start_time:
+        args["startTime"] = start_time
+    
+    result = mcp_client.call_tool(
+        server="zoom",
+        tool="create_meeting",
+        arguments=args,
+        env={"ZOOM_ACCESS_TOKEN": token}
+    )
+    if result["success"]:
+        return f"Meeting created!\n{result['data']}"
+    return f"Error: {result['error']}"
+
+def zoom_list_meetings(user_id: str) -> str:
+    """List upcoming Zoom meetings."""
+    token = get_service_token(user_id, "zoom")
+    if not token:
+        return "Error: Zoom account not connected."
+
+    result = mcp_client.call_tool(
+        server="zoom",
+        tool="list_meetings",
+        arguments={"type": "upcoming"},
+        env={"ZOOM_ACCESS_TOKEN": token}
+    )
+    if result["success"]:
+        return f"Upcoming meetings:\n{result['data']}"
+    return f"Error: {result['error']}"
+
+# --- GitHub Tools ---
+
+def github_list_issues(user_id: str, owner: str, repo: str, state: str = "open") -> str:
+    """List issues in a GitHub repository."""
+    token = get_service_token(user_id, "github")
+    if not token:
+        return "Error: GitHub account not connected."
+    
+    result = mcp_client.call_tool(
+        server="github-mcp",
+        tool="list_issues",
+        arguments={"owner": owner, "repo": repo, "state": state},
+        env={"GITHUB_TOKEN": token}
+    )
+    if result["success"]:
+        return f"Issues in {owner}/{repo}:\n{result['data']}"
+    return f"Error: {result['error']}"
+
+def github_create_issue(user_id: str, owner: str, repo: str, title: str, body: str = "") -> str:
+    """Create a new GitHub issue."""
+    token = get_service_token(user_id, "github")
+    if not token:
+        return "Error: GitHub account not connected."
+    
+    result = mcp_client.call_tool(
+        server="github-mcp",
+        tool="create_issue",
+        arguments={"owner": owner, "repo": repo, "title": title, "body": body},
+        env={"GITHUB_TOKEN": token}
+    )
+    if result["success"]:
+        return f"Issue created successfully!\n{result['data']}"
+    return f"Error: {result['error']}"
+
+def github_list_pull_requests(user_id: str, owner: str, repo: str, state: str = "open") -> str:
+    """List pull requests in a GitHub repository."""
+    token = get_service_token(user_id, "github")
+    if not token:
+        return "Error: GitHub account not connected."
+    
+    result = mcp_client.call_tool(
+        server="github-mcp",
+        tool="list_pull_requests",
+        arguments={"owner": owner, "repo": repo, "state": state},
+        env={"GITHUB_TOKEN": token}
+    )
+    if result["success"]:
+        return f"Pull requests in {owner}/{repo}:\n{result['data']}"
+    return f"Error: {result['error']}"
+
+
 class ResearchAgent(BaseAgent):
     """Research Agent using LangChain Deep Agents with RAG integration."""
 
-    def __init__(self, session_id: Optional[str] = None, enable_memory: bool = True):
+    def __init__(self, user_id: str = "test-user", session_id: Optional[str] = None, enable_memory: bool = True):
         if not DEEP_AGENTS_AVAILABLE:
             raise ImportError(
                 "Deep Agents not available. Install with: pip install deepagents"
@@ -287,7 +505,8 @@ class ResearchAgent(BaseAgent):
                 "BaseAgent not available. Cannot initialize ResearchAgent without BaseAgent."
             )
         
-        # Store session_id for memory isolation
+        # Store user_id and session_id
+        self.user_id = user_id
         self.session_id = session_id or "default"
         self.enable_memory = enable_memory
         self.memory_manager = None  # Will be initialized if memory is enabled
@@ -364,15 +583,35 @@ Parameters:
 ### `query_knowledge_base`
 Use this for direct questions. It will search the knowledge base and return a formatted answer with source citations.
 
+### Zoho Mail Tools
+- `zoho_mail_list_emails(account_id, limit)`: List recent emails from Zoho Mail
+- `zoho_mail_send_email(account_id, to, subject, body)`: Send a new email
+- `zoho_mail_reply_to_email(account_id, message_id, body)`: Reply to an existing email
+
+### Zoho Cliq Tools
+- `zoho_cliq_list_channels()`: List all available Cliq channels
+- `zoho_cliq_get_messages(channel_id, limit)`: Get recent messages from a channel
+- `zoho_cliq_send_message(channel_id, text)`: Send a message to a channel
+
+### Zoom Tools
+- `zoom_create_meeting(topic, start_time, duration)`: Create a new Zoom meeting
+- `zoom_list_meetings()`: List upcoming Zoom meetings
+
+### GitHub Tools
+- `github_list_issues(owner, repo, state)`: List issues in a repository
+- `github_create_issue(owner, repo, title, body)`: Create a new issue
+- `github_list_pull_requests(owner, repo, state)`: List pull requests
+
 ## Guidelines
 
 1. **Planning**: Use the built-in `write_todos` tool to break down complex research tasks
 2. **Research**: Always search the knowledge base first before answering
-3. **Synthesis**: Combine information from multiple sources when relevant
-4. **Citation**: Always cite your sources when presenting information
-5. **Honesty**: If information is not available in the knowledge base, clearly state this
-6. **Organization**: Structure your responses clearly with sections when appropriate
-7. **File Management**: Use filesystem tools (`write_file`, `read_file`) to manage large research results
+3. **Integration**: Use Zoho, Zoom, or GitHub tools when the user asks about emails, meetings, or code repositories.
+4. **Auth**: If a tool returns an error saying "not connected", politely ask the user to connect the service in the sidebar.
+5. **Citation**: Always cite your sources when presenting information
+6. **Honesty**: If information is not available in the knowledge base, clearly state this
+7. **Organization**: Structure your responses clearly with sections when appropriate
+8. **File Management**: Use filesystem tools (`write_file`, `read_file`) to manage large research results
 
 ## Long-Term Memory
 
@@ -419,8 +658,33 @@ Example workflow for "check our memory of vishal kumar":
 
 Remember: Your goal is to provide accurate, well-researched answers with proper source attribution."""
 
-        # Create tools list
-        tools = [knowledge_search, query_knowledge_base]
+        # Create tools list using closures to bind user_id
+        def wrap_tool(tool_func):
+            def wrapped(*args, **kwargs):
+                return tool_func(self.user_id, *args, **kwargs)
+            wrapped.__name__ = tool_func.__name__
+            wrapped.__doc__ = tool_func.__doc__
+            return wrapped
+
+        tools = [
+            knowledge_search, 
+            query_knowledge_base,
+            # Zoho Mail
+            wrap_tool(zoho_mail_list_emails),
+            wrap_tool(zoho_mail_send_email),
+            wrap_tool(zoho_mail_reply_to_email),
+            # Zoho Cliq
+            wrap_tool(zoho_cliq_list_channels),
+            wrap_tool(zoho_cliq_get_messages),
+            wrap_tool(zoho_cliq_send_message),
+            # Zoom
+            wrap_tool(zoom_create_meeting),
+            wrap_tool(zoom_list_meetings),
+            # GitHub
+            wrap_tool(github_list_issues),
+            wrap_tool(github_create_issue),
+            wrap_tool(github_list_pull_requests),
+        ]
         
         # Create compliance middleware
         compliance_middleware = ComplianceMiddleware(

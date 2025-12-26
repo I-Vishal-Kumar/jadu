@@ -99,6 +99,31 @@ CREATE TRIGGER update_chat_sessions_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
+-- Service Credentials Table
+-- Stores OAuth tokens for Zoho, Zoom, etc.
+-- ============================================
+CREATE TABLE IF NOT EXISTS service_credentials (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(255) NOT NULL,
+    service_name VARCHAR(50) NOT NULL,
+    access_token TEXT NOT NULL,
+    refresh_token TEXT,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    scope TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, service_name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_service_credentials_user_service ON service_credentials(user_id, service_name);
+
+DROP TRIGGER IF EXISTS update_service_credentials_updated_at ON service_credentials;
+CREATE TRIGGER update_service_credentials_updated_at
+    BEFORE UPDATE ON service_credentials
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
 -- Views for common queries
 -- ============================================
 

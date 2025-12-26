@@ -18,7 +18,7 @@ from .handlers.chat_handler import handle_chat_message
 from .utils.permissions import get_user_role
 from .models.db import SessionLocal
 from .models.messages import ChatResponse, SystemMessage, ErrorMessage
-from .routes import transcription, meetings, conversations, notifications
+from .models.routes import transcription, meetings, conversations, notifications, oauth
 
 # Configure logging
 logging.basicConfig(
@@ -150,6 +150,7 @@ app.include_router(transcription.router)
 app.include_router(meetings.router)
 app.include_router(conversations.router)
 app.include_router(notifications.router)
+app.include_router(oauth.router)
 
 
 @app.get("/api/health")
@@ -417,7 +418,7 @@ async def websocket_chat_endpoint(websocket: WebSocket, session_id: str, user_id
 
             if message_type in ("message", "research", "smart"):
                 # Process with smart handler (auto-detects intent)
-                response = await handle_smart_message(websocket, message_data, session_id)
+                response = await handle_smart_message(websocket, message_data, session_id, user_id)
 
                 if response:
                     # Send response back to sender

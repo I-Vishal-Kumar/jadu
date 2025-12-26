@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5433")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5437")
 POSTGRES_DB = os.getenv("POSTGRES_DB", "intellibooks")
 POSTGRES_USER = os.getenv("POSTGRES_USER", "admin")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "admin")
@@ -19,7 +19,7 @@ class DatabaseConfig:
     """PostgreSQL database configuration."""
 
     host: str = POSTGRES_HOST
-    port: int = POSTGRES_PORT  # Using 5433 to avoid conflict with local PostgreSQL
+    port: int = POSTGRES_PORT  # Using 5437 to avoid conflict with local PostgreSQL
     database: str = POSTGRES_DB
     user: str = POSTGRES_USER
     password: str = POSTGRES_PASSWORD
@@ -50,7 +50,7 @@ def get_db_config() -> DatabaseConfig:
 
     return DatabaseConfig(
         host=os.getenv("POSTGRES_HOST", "localhost"),
-        port=int(os.getenv("POSTGRES_PORT", "5433")),  # Docker port 5433 to avoid conflict
+        port=int(os.getenv("POSTGRES_PORT", "5437")),  # Docker port 5437 to avoid conflict
         database=os.getenv("POSTGRES_DB", "intellibooks"),
         user=os.getenv("POSTGRES_USER", "admin"),
         password=os.getenv("POSTGRES_PASSWORD", "devpassword123"),

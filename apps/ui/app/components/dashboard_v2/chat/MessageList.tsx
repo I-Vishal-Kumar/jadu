@@ -120,11 +120,10 @@ export const MessageList: FC<MessageListProps> = ({
                     className={`${message.role === "user" ? "flex justify-end" : ""}`}
                 >
                     <div
-                        className={`${
-                            message.role === "user"
+                        className={`${message.role === "user"
                                 ? "bg-purple-600 text-white rounded-2xl rounded-br-md px-4 py-3 max-w-[80%]"
                                 : "flex gap-4"
-                        }`}
+                            }`}
                     >
                         {message.role === "assistant" && (
                             <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shrink-0">
@@ -139,11 +138,10 @@ export const MessageList: FC<MessageListProps> = ({
                                 </div>
                             )}
 
-                            <div className={`text-sm leading-relaxed ${
-                                message.role === "user" 
+                            <div className={`text-sm leading-relaxed ${message.role === "user"
                                     ? "prose prose-sm max-w-none prose-invert prose-headings:text-white prose-p:text-white prose-p:my-2 prose-a:text-purple-200 prose-a:no-underline hover:prose-a:underline prose-strong:text-white prose-strong:font-semibold prose-code:text-purple-200 prose-code:bg-purple-900/30 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-pre:bg-gray-800 prose-pre:text-gray-100 prose-pre:rounded-lg prose-pre:p-4 prose-pre:overflow-x-auto prose-ul:list-disc prose-ul:pl-5 prose-ol:list-decimal prose-ol:pl-5 prose-li:my-1 prose-blockquote:border-l-4 prose-blockquote:border-purple-300 prose-blockquote:pl-4 prose-blockquote:italic prose-hr:border-purple-300"
                                     : "prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-gray-900 prose-p:text-gray-700 prose-p:my-2 prose-a:text-purple-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 prose-strong:font-semibold prose-code:text-purple-600 prose-code:bg-purple-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-lg prose-pre:p-4 prose-pre:overflow-x-auto prose-ul:list-disc prose-ul:pl-5 prose-ol:list-decimal prose-ol:pl-5 prose-li:my-1 prose-blockquote:border-l-4 prose-blockquote:border-gray-300 prose-blockquote:pl-4 prose-blockquote:italic prose-hr:border-gray-200"
-                            }`}>
+                                }`}>
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm]}
                                     rehypePlugins={[rehypeHighlight]}
