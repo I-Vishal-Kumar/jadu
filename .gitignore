@@ -54,6 +54,7 @@ node_modules/
 .claude/
 pnpm-lock.yaml
 .turbo/
+
 # IDEs
 .idea/
 *.swp
@@ -61,7 +62,15 @@ pnpm-lock.yaml
 *~
 .DS_Store
 
-#data 
+# Next.js build output
+.next/
+out/
+
+# Windows artifacts
+nul
+Thumbs.db
+
+# Data
 data/
 
 # Jupyter Notebook
